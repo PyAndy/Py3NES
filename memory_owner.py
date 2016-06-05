@@ -5,6 +5,7 @@ from typing import List
 class MemoryOwnerMixin(ABC):
     # TODO check we have correct amount of memory
     @abstractproperty
+    @property
     def memory_start_location(self) -> int:
         """
         inclusive
@@ -12,6 +13,7 @@ class MemoryOwnerMixin(ABC):
         pass
 
     @abstractproperty
+    @property
     def memory_end_location(self) -> int:
         """
         inclusive

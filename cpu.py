@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 
-from instruction import LdaImmInstruction, SEIInstruction, CLDInstruction, StaAbsInstruction
+from instruction import LdaImmInstruction, SeiInstruction, CldInstruction, StaAbsInstruction
 from memory_owner import MemoryOwnerMixin
 from ram import RAM
 from ppu import PPU
@@ -36,8 +36,8 @@ class CPU(object):
         self.running = True
 
         self.instructions = [
-            SEIInstruction(),
-            CLDInstruction(),
+            SeiInstruction(),
+            CldInstruction(),
             LdaImmInstruction(),
             StaAbsInstruction()
         ]
@@ -100,6 +100,7 @@ class CPU(object):
 
             # get the correct amount of data bytes
             num_data_bytes = instruction.instruction_length - 1
+
             # get the data bytes
             data_bytes = self.rom.get(self.pc_reg + 1, num_data_bytes)
 
