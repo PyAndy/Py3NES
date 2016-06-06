@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class Status:
     """
     7  bit  0
@@ -16,10 +19,24 @@ class Status:
     |            or D6 from last BIT
     +--------- Negative: Set to bit 7 of the last operation
     """
+    class StatusTypes(Enum):
+        carry = 0
+        zero = 1
+        interrupt = 2
+        decimal = 3
+        unused1 = 4
+        unused2 = 5
+        overflow = 6
+        negative = 7
+
     def __init__(self):
-        self.negative_bit = False  # type: bool
-        self.overflow_bit = False  # type: bool
-        self.interrupt_bit = True  # type: bool
-        self.decimal_bit = False  # type: bool
-        self.zero_bit = False  # type: bool
-        self.carry_bit = False  # type: bool
+        self.bits = {
+            Status.StatusTypes.carry: False,
+            Status.StatusTypes.zero: False,
+            Status.StatusTypes.interrupt: True,
+            Status.StatusTypes.decimal: False,
+            Status.StatusTypes.unused1: True,
+            Status.StatusTypes.unused2: True,
+            Status.StatusTypes.overflow: False,
+            Status.StatusTypes.negative: False,
+        }

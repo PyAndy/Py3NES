@@ -1,15 +1,31 @@
-from typing import List, Optional
+from typing import Optional
+import cpu as c
 
-
-class AddressingMixin(object):
+class Addressing(object):
     data_length = 0
 
-    @property
-    def instruction_length(self):
-        return self.data_length + 1
+    @classmethod
+    def get_instruction_length(cls):
+        return cls.data_length + 1
+
+    @classmethod
+    def get_offset(cls, cpu):
+        return 0
 
 
-class NoAddressingMixin(AddressingMixin):
+class XRegOffset(object):
+    @classmethod
+    def get_offset(cls, cpu):
+        return cpu.x_reg
+
+
+class YRegOffset(object):
+    @classmethod
+    def get_offset(cls, cpu):
+        return cpu.y_reg
+
+
+class ImplicitAddressing(Addressing):
     """
     instructions that have data passed
     example: CLD
@@ -17,7 +33,7 @@ class NoAddressingMixin(AddressingMixin):
     data_length = 0
 
 
-class ImmediateReadAddressingMixin(AddressingMixin):
+class ImmediateReadAddressing(Addressing):
     """
     read a value from the instruction data
     example: STA #7
@@ -25,11 +41,12 @@ class ImmediateReadAddressingMixin(AddressingMixin):
     """
     data_length = 1
 
-    def get_data(self, cpu, memory_address, data_bytes):
+    @classmethod
+    def get_data(cls, cpu, memory_address, data_bytes):
         return data_bytes[0]
 
 
-class AbsoluteAddressingMixin(AddressingMixin):
+class AbsoluteAddressing(Addressing):
     """
     looks up an absolute memory address and returns the value
     example: STA $12 34
@@ -37,19 +54,99 @@ class AbsoluteAddressingMixin(AddressingMixin):
     """
     data_length = 2
 
-    def get_address(self, data_bytes: bytes) -> Optional[int]:
-        return int.from_bytes(data_bytes, byteorder='little')
+    @classmethod
+    def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
+        return int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
 
 
-# TODO this is not real yet
-# class AbsoluteAddressingWithXMixin(AddressingMixin):
-#     """
-#     looks up an absolute memory address including adding the x reg to that address
-#     returns the value at that address
-#     example: STA $12 34
-#     memory_address = ($3412+#X)
-#     """
-#     data_length = 2
-#
-#     def get_address(self, data_bytes: bytes) -> Optional[int]:
-#         return int.from_bytes(data_bytes, byteorder='little')
+class AbsoluteAddressingXOffset(XRegOffset, AbsoluteAddressing):
+    """
+    adds the x reg offset to an absolute memory location
+    """
+
+
+class AbsoluteAddressingYOffset(YRegOffset, AbsoluteAddressing):
+    """
+    adds the y reg offset to an absolute memory location
+    """
+
+
+class ZeroPageAddressing(Addressing):
+    """
+    look up an absolute memory address in the first 256 bytes
+    example: STA $12
+    memory_address: $12
+    Note: can overflow
+    """
+    data_length = 1
+
+    @classmethod
+    def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
+        address = int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
+        # check for overflow
+        if address >= 256:
+            address %= 256
+
+        return address
+
+
+class ZeroPageAddressingWithX(XRegOffset, ZeroPageAddressing):
+    """
+    adds the x reg offset to an absolute memory address in the first 256 bytes
+    """
+
+
+class ZeroPageAddressingWithY(YRegOffset, ZeroPageAddressing):
+    """
+    adds the y reg offset to an absolute memory address in the first 256 bytes
+    """
+
+
+class RelativeAddressing(Addressing):
+    # TODO: Signed?
+    """
+    offset from current PC, can only jump 256 bytes
+    """
+    data_length = 1
+
+    @classmethod
+    def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
+        # TODO: off by one error
+        # get the program counter
+        current_address = cpu.pc_reg
+
+        # offset by value in instruction
+        return current_address + int.from_bytes(data_bytes, byteorder='little')
+
+
+class IndirectBase(Addressing):
+    @classmethod
+    def get_address(cls, cpu: 'c.CPU', data_bytes: bytes):
+        # look up the bytes at [original_address, original_address + 1]
+        lsb_location = super().get_address(cpu, data_bytes)
+        msb_location = lsb_location + 1
+
+        lsb = cpu.get_memory(lsb_location)
+        msb = cpu.get_memory(msb_location)
+
+        return int.from_bytes(bytes([lsb, msb]), byteorder='little') + cls.get_offset(cpu)
+
+
+class IndirectAddressing(IndirectBase, AbsoluteAddressing):
+    """
+    indirect address
+    """
+
+# TODO: bug with get_offset being reused
+
+
+class IndexedIndirectAddressing(IndirectBase, ZeroPageAddressingWithX):
+    """
+    adds the x reg before indirection
+    """
+
+
+class IndirectIndexedAddressing(YRegOffset, IndirectBase, ZeroPageAddressing):
+    """
+    adds the y reg after indirection
+    """
