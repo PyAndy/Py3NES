@@ -1,21 +1,9 @@
 from typing import Optional
 import cpu as c
 
-instructions = {}
-
-
-def register(cls):
-    instructions[cls.identifier_byte] = cls
-    return cls
-
 
 class Instruction:
     identifier_byte = None
-
-    @classmethod
-    def __str__(cls):
-        return "{}, Identifier byte: {}".format(cls.__name__,
-                                                cls.identifier_byte)
 
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:

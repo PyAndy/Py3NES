@@ -2,7 +2,7 @@ import pytest
 from mock import MagicMock
 
 from cpu import CPU
-from instruction import LdaImmInstruction, StaAbsInstruction, SeiInstruction, CldInstruction
+from instructions import LdaImmInstruction, StaAbsInstruction, SeiInstruction, CldInstruction
 from ppu import PPU
 from ram import RAM
 

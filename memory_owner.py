@@ -24,14 +24,15 @@ class MemoryOwnerMixin(ABC):
     def get_memory(self) -> List[int]:
         pass
 
-    def get(self, position: int) -> int:
+    def get(self, position: int):
         """
         gets int at given position
         """
         return self.get_memory()[position - self.memory_start_location]
 
-    def set(self, position: int, value: int):
+    def set(self, position: int, value: int, size:int=1):
         """
         sets int at given position
         """
-        self.get_memory()[position - self.memory_start_location] = value
+        for i in range(size):
+            self.get_memory()[position - self.memory_start_location - i] = value

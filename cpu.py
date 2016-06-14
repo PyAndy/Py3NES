@@ -1,6 +1,7 @@
 from typing import List
 
-from generic_instructions import instructions
+import instructions as instructions_file
+from generic_instructions import Instruction
 from memory_owner import MemoryOwnerMixin
 from ppu import PPU
 from ram import RAM
@@ -66,10 +67,6 @@ class CPU(object):
         """
         return the owner of a memory location
         """
-        # check if rom
-        if self.rom.memory_start_location <= location <= self.rom.memory_end_location:
-                return self.rom
-
         # check if memory owner
         for memory_owner in self.memory_owners:
             if memory_owner.memory_start_location <= location <= memory_owner.memory_end_location:
@@ -77,16 +74,35 @@ class CPU(object):
 
         raise Exception('Cannot find memory owner')
 
+    def find_instructions(self, cls):
+        """
+        finds all available instructions
+        """
+        subclasses = [subc for subc in cls.__subclasses__() if subc.identifier_byte is not None]
+        return subclasses + [g for s in cls.__subclasses__() for g in self.find_instructions(s)]
+
     def run_rom(self, rom: ROM):
+        # unload old rom
+        if self.rom is not None:
+            self.memory_owners.remove(self.rom)
+
         # load rom
         self.rom = rom
-        self.pc_reg = self.rom.header_size
+        self.pc_reg = 0xC000
+
+        # load the rom program instructions into memory
+        self.memory_owners.append(self.rom)
+
+        instructions_list = self.find_instructions(Instruction)
+        instructions = {}
+        for instruction in instructions_list:
+            instructions[instruction.identifier_byte] = instruction
 
         # run program
         self.running = True
         while self.running:
             # get the current byte at pc
-            identifier_byte = self.rom.get(self.pc_reg)
+            identifier_byte = self.get_memory_owner(self.pc_reg).get(self.pc_reg)
 
             # turn the byte into an Instruction
             instruction = instructions.get(identifier_byte, None)
@@ -96,7 +112,16 @@ class CPU(object):
             # get the data bytes
             data_bytes = self.rom.get(self.pc_reg + 1, instruction.data_length)
 
+            # print out diagnostic information
+            # example: C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD CYC:  0
+            print('{}, {}, {}, A:{}, X:{}, Y:{}, P:{}, SP:{}'.format(hex(self.pc_reg),
+                                                                     (identifier_byte+data_bytes).hex(),
+                                                                     instruction.__name__, self.a_reg, self.x_reg,
+                                                                     self.y_reg, hex(self.status_reg.to_int()),
+                                                                     hex(self.sp_reg)))
+
+            # increment the pc_reg
+            self.pc_reg += instruction.get_instruction_length()
+
             # we have a valid instruction class
             instruction.execute(self, data_bytes)
-
-            self.pc_reg += instruction.get_instruction_length()
