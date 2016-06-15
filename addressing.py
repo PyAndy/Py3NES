@@ -1,6 +1,7 @@
 from typing import Optional
 import cpu as c
 
+
 class Addressing(object):
     data_length = 0
 
@@ -59,13 +60,13 @@ class AbsoluteAddressing(Addressing):
         return int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
 
 
-class AbsoluteAddressingXOffset(XRegOffset, AbsoluteAddressing):
+class AbsoluteAddressingWithX(XRegOffset, AbsoluteAddressing):
     """
     adds the x reg offset to an absolute memory location
     """
 
 
-class AbsoluteAddressingYOffset(YRegOffset, AbsoluteAddressing):
+class AbsoluteAddressingWithY(YRegOffset, AbsoluteAddressing):
     """
     adds the y reg offset to an absolute memory location
     """
@@ -83,7 +84,6 @@ class ZeroPageAddressing(Addressing):
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
         address = int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
-        # check for overflow
         if address >= 256:
             address %= 256
 
@@ -103,15 +103,13 @@ class ZeroPageAddressingWithY(YRegOffset, ZeroPageAddressing):
 
 
 class RelativeAddressing(Addressing):
-    # TODO: Signed?
     """
-    offset from current PC, can only jump 256 bytes
+    offset from current PC, can only jump 128 bytes in either direction
     """
     data_length = 1
 
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
-        # TODO: off by one error
         # get the program counter
         current_address = cpu.pc_reg
 
@@ -129,7 +127,7 @@ class IndirectBase(Addressing):
         lsb = cpu.get_memory(lsb_location)
         msb = cpu.get_memory(msb_location)
 
-        return int.from_bytes(bytes([lsb, msb]), byteorder='little') + cls.get_offset(cpu)
+        return int.from_bytes(bytes([lsb, msb]), byteorder='little')
 
 
 class IndirectAddressing(IndirectBase, AbsoluteAddressing):
@@ -137,16 +135,16 @@ class IndirectAddressing(IndirectBase, AbsoluteAddressing):
     indirect address
     """
 
-# TODO: bug with get_offset being reused
-
-
 class IndexedIndirectAddressing(IndirectBase, ZeroPageAddressingWithX):
     """
     adds the x reg before indirection
     """
 
 
-class IndirectIndexedAddressing(YRegOffset, IndirectBase, ZeroPageAddressing):
+class IndirectIndexedAddressing(IndirectBase, ZeroPageAddressing):
     """
     adds the y reg after indirection
     """
+    @classmethod
+    def get_address(cls, cpu: 'c.CPU', data_bytes: bytes):
+        return super().get_address(cpu, data_bytes) + cpu.y_reg

@@ -1,7 +1,8 @@
+import math
 from collections import OrderedDict
 from enum import Enum
 
-import math
+from instructions.generic_instructions import Instruction
 
 
 class Status:
@@ -46,6 +47,15 @@ class Status:
             (Status.StatusTypes.overflow, False),
             (Status.StatusTypes.negative, False),
         ])
+
+    def update(self, instruction: Instruction, value: int):
+        """
+        update the status based on the instruction attributes and the value calculated
+        """
+        if instruction.sets_zero_bit:
+            self.bits[Status.StatusTypes.zero] = value == 0
+        if instruction.sets_negative_bit:
+            self.bits[Status.StatusTypes.negative] = value < 0
 
     def to_int(self):
         value = 0

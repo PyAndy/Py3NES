@@ -4,6 +4,8 @@ import cpu as c
 
 class Instruction:
     identifier_byte = None
+    sets_zero_bit = False
+    sets_negative_bit = False
 
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
@@ -31,9 +33,10 @@ class Instruction:
 
         cls.apply_side_effects(cpu)
 
+        return value
+
 
 class WritesToMem(object):
     @classmethod
     def write(cls, cpu, memory_address, value):
-        memory_owner = cpu.get_memory_owner(memory_address)
-        memory_owner.set(memory_address, value)
+        cpu.set_memory(memory_address, value)
