@@ -1,5 +1,5 @@
-from addressing import AbsoluteAddressing, IndirectAddressing
-from instructions.base_instructions import Jmp, Jsr, BranchSet, BranchClear
+from addressing import AbsoluteAddressing, IndirectAddressing, ImplicitAddressing
+from instructions.base_instructions import Jmp, Jsr, BranchSet, BranchClear, Rts
 
 # Jmp
 from status import Status
@@ -13,9 +13,13 @@ class JmpInd(IndirectAddressing, Jmp):
     identifier_byte = bytes([0x6C])
 
 
-# Jsr
+# Jsr and Rts
 class JsrAbs(AbsoluteAddressing, Jsr):
     identifier_byte = bytes([0x20])
+
+
+class RtsImp(ImplicitAddressing, Rts):
+    identifier_byte = bytes([0x60])
 
 
 # branch sets

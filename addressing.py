@@ -135,13 +135,13 @@ class IndirectAddressing(IndirectBase, AbsoluteAddressing):
     indirect address
     """
 
-class IndexedIndirectAddressing(IndirectBase, ZeroPageAddressingWithX):
+class IndirectAddressingWithX(IndirectBase, ZeroPageAddressingWithX):
     """
     adds the x reg before indirection
     """
 
 
-class IndirectIndexedAddressing(IndirectBase, ZeroPageAddressing):
+class IndirectAddressingWithY(IndirectBase, ZeroPageAddressing):
     """
     adds the y reg after indirection
     """

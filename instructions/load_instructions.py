@@ -1,5 +1,5 @@
-from addressing import ImmediateReadAddressing, IndexedIndirectAddressing, ZeroPageAddressing, ZeroPageAddressingWithX, \
-    AbsoluteAddressing, AbsoluteAddressingWithY, AbsoluteAddressingWithX, IndirectIndexedAddressing, \
+from addressing import ImmediateReadAddressing, IndirectAddressingWithX, ZeroPageAddressing, ZeroPageAddressingWithX, \
+    AbsoluteAddressing, AbsoluteAddressingWithY, AbsoluteAddressingWithX, IndirectAddressingWithY, \
     ZeroPageAddressingWithY
 from instructions.base_instructions import Lda, Ldx, Ldy
 
@@ -9,7 +9,7 @@ class LdaImm(ImmediateReadAddressing, Lda):
     identifier_byte = bytes([0xA9])
 
 
-class LdaIndexedIndirect(IndexedIndirectAddressing, Lda):
+class LdaIndirectWithX(IndirectAddressingWithX, Lda):
     identifier_byte = bytes([0xA1])
 
 
@@ -33,7 +33,7 @@ class LdaAbsX(AbsoluteAddressingWithX, Lda):
     identifier_byte = bytes([0xBD])
 
 
-class LdaIndirectIndexed(IndirectIndexedAddressing, Lda):
+class LdaIndirectWithY(IndirectAddressingWithY, Lda):
     identifier_byte = bytes([0xB1])
 
 
