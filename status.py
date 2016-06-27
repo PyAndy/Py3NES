@@ -1,6 +1,7 @@
 import math
 from collections import OrderedDict
 from enum import Enum
+from typing import List
 
 from instructions.generic_instructions import Instruction
 
@@ -56,7 +57,7 @@ class Status:
             self.bits[Status.StatusTypes.zero] = not bool(value)
         if instruction.sets_negative_bit:
             self.bits[Status.StatusTypes.negative] = bool(value & 0b10000000)
-        if instruction.sets_overflow_bit:
+        if instruction.sets_overflow_bit_from_value:
             self.bits[Status.StatusTypes.overflow] = bool(value & 0b01000000)
 
     def to_int(self):
@@ -65,6 +66,8 @@ class Status:
             value += int(bit) * math.pow(2, i)
         return int(value)
 
-    def from_int(self, value: int):
+    def from_int(self, value: int, bits_to_ignore: List[int]):
         for i, key in enumerate(self.bits.keys()):
-            self.bits[key] = value & (1 << i)
+            if i in bits_to_ignore:
+                continue
+            self.bits[key] = bool(value & (1 << i))

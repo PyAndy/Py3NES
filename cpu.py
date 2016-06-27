@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from instructions.generic_instructions import Instruction
 
 from memory_owner import MemoryOwnerMixin
@@ -13,6 +15,8 @@ import instructions.jump_instructions as j_file
 import instructions.load_instructions as l_file
 import instructions.store_instructions as s_file
 import instructions.bit_instructions as b_file
+import instructions.arithmetic_instructions as a_file
+
 
 
 class CPU(object):
@@ -73,11 +77,11 @@ class CPU(object):
         # TODO Hex vs binary
         self.pc_reg = 0  # 2 byte
         self.status_reg = Status()
-        self.sp_reg = 0xFD
+        self.sp_reg = np.uint8(0xFD)
 
-        self.x_reg = 0
-        self.y_reg = 0
-        self.a_reg = 0
+        self.x_reg = np.uint8(0)
+        self.y_reg = np.uint8(0)
+        self.a_reg = np.uint8(0)
 
         # TODO implement memory sets
 
@@ -110,13 +114,13 @@ class CPU(object):
         """
         increases stack size by decreasing the stack pointer
         """
-        self.sp_reg -= size
+        self.sp_reg -= np.uint8(size)
 
     def decrease_stack_size(self, size: int):
         """
         decreases stack size by increasing the stack pointer
         """
-        self.sp_reg += size
+        self.sp_reg += np.uint8(size)
 
     def load_rom(self, rom: ROM):
         # unload old rom

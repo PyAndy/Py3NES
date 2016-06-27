@@ -6,7 +6,7 @@ class Instruction:
     identifier_byte = None
     sets_zero_bit = False
     sets_negative_bit = False
-    sets_overflow_bit = False
+    sets_overflow_bit_from_value = False
 
     # overwritten by addressing mixin
     data_length = 0

@@ -135,6 +135,7 @@ class IndirectAddressing(IndirectBase, AbsoluteAddressing):
     indirect address
     """
 
+
 class IndirectAddressingWithX(IndirectBase, ZeroPageAddressingWithX):
     """
     adds the x reg before indirection

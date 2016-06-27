@@ -1,79 +1,42 @@
-from addressing import ImmediateReadAddressing, IndirectAddressingWithX, ZeroPageAddressing, ZeroPageAddressingWithX, \
-    AbsoluteAddressing, AbsoluteAddressingWithY, AbsoluteAddressingWithX, IndirectAddressingWithY, \
-    ZeroPageAddressingWithY
+from helpers import generate_classes_from_string
 from instructions.base_instructions import Lda, Ldx, Ldy
 
+types = []
 
-# Lda
-class LdaImm(ImmediateReadAddressing, Lda):
-    identifier_byte = bytes([0xA9])
+lda_types = '''
+immidiate     LDA #oper     A9    2     2
+zeropage      LDA oper      A5    2     3
+zeropage,X    LDA oper,X    B5    2     4
+absolute      LDA oper      AD    3     4
+absolute,X    LDA oper,X    BD    3     4*
+absolute,Y    LDA oper,Y    B9    3     4*
+(indirect,X)  LDA (oper,X)  A1    2     6
+(indirect),Y  LDA (oper),Y  B1    2     5*
+'''
 
-
-class LdaIndirectWithX(IndirectAddressingWithX, Lda):
-    identifier_byte = bytes([0xA1])
-
-
-class LdaZeroPage(ZeroPageAddressing, Lda):
-    identifier_byte = bytes([0xA5])
-
-
-class LdaZeroPageX(ZeroPageAddressingWithX, Lda):
-    identifier_byte = bytes([0xB5])
-
-
-class LdaAbs(AbsoluteAddressing, Lda):
-    identifier_byte = bytes([0xAD])
+for generated in generate_classes_from_string(Lda, lda_types):
+    types.append(generated)
 
 
-class LdaAbsY(AbsoluteAddressingWithY, Lda):
-    identifier_byte = bytes([0xB9])
+ldx_types = '''
+immidiate     LDX #oper     A2    2     2
+zeropage      LDX oper      A6    2     3
+zeropage,Y    LDX oper,Y    B6    2     4
+absolute      LDX oper      AE    3     4
+absolute,Y    LDX oper,Y    BE    3     4*
+'''
+
+for generated in generate_classes_from_string(Ldx, ldx_types):
+    types.append(generated)
 
 
-class LdaAbsX(AbsoluteAddressingWithX, Lda):
-    identifier_byte = bytes([0xBD])
+ldy_types = '''
+immidiate     LDY #oper     A0    2     2
+zeropage      LDY oper      A4    2     3
+zeropage,X    LDY oper,X    B4    2     4
+absolute      LDY oper      AC    3     4
+absolute,X    LDY oper,X    BC    3     4*
+'''
 
-
-class LdaIndirectWithY(IndirectAddressingWithY, Lda):
-    identifier_byte = bytes([0xB1])
-
-
-# Ldx
-class LdxImm(ImmediateReadAddressing, Ldx):
-    identifier_byte = bytes([0xA2])
-
-
-class LdxZpg(ZeroPageAddressing, Ldx):
-    identifier_byte = bytes([0xA6])
-
-
-class LdxZpgY(ZeroPageAddressingWithY, Ldx):
-    identifier_byte = bytes([0xB6])
-
-
-class LdxAbs(AbsoluteAddressing, Ldx):
-    identifier_byte = bytes([0xAE])
-
-
-class LdxAbsY(AbsoluteAddressingWithY, Ldx):
-    identifier_byte = bytes([0xBE])
-
-
-# Ldy
-class LdyImm(ImmediateReadAddressing, Ldy):
-    identifier_byte = bytes([0xA0])
-
-
-class LdyZpg(ZeroPageAddressing, Ldy):
-    identifier_byte = bytes([0xA4])
-
-
-class LdyZpgX(ZeroPageAddressingWithX, Ldy):
-    identifier_byte = bytes([0xB4])
-
-
-class LdyAbs(AbsoluteAddressing, Ldy):
-    identifier_byte = bytes([0xAC])
-
-
-class LdyAbsX(AbsoluteAddressingWithX, Ldy):
-    identifier_byte = bytes([0xBC])
+for generated in generate_classes_from_string(Ldy, ldy_types):
+    types.append(generated)
