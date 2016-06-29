@@ -1,8 +1,8 @@
 import numpy as np
 
 from addressing import ImplicitAddressing
-from instructions.base_instructions import StackPush, StackPull, RegisterModifier
-
+from helpers import generate_classes_from_string
+from instructions.base_instructions import StackPush, StackPull, RegisterModifier, Inc, Dec
 
 # stack push instructions
 from instructions.generic_instructions import Instruction
@@ -166,3 +166,26 @@ class Tya(ImplicitAddressing, RegisterModifier):
     def write(cls, cpu, memory_address, value):
         cpu.a_reg = cpu.y_reg
         return cpu.a_reg
+
+# inc
+types = []
+
+inc_types = '''
+zeropage      INC oper      E6    2     5
+zeropage,X    INC oper,X    F6    2     6
+absolute      INC oper      EE    3     6
+absolute,X    INC oper,X    FE    3     7
+'''
+
+for generated in generate_classes_from_string(Inc, inc_types):
+    types.append(generated)
+
+dec_types = '''
+zeropage      DEC oper      C6    2     5
+zeropage,X    DEC oper,X    D6    2     6
+absolute      DEC oper      CE    3     3
+absolute,X    DEC oper,X    DE    3     7
+'''
+
+for generated in generate_classes_from_string(Dec, dec_types):
+    types.append(generated)

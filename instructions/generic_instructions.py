@@ -21,6 +21,8 @@ class Instruction:
 
     @classmethod
     def get_data(cls, cpu, memory_address, data_bytes) -> Optional[int]:
+        if memory_address is not None:
+            return cpu.get_memory(memory_address)
         return None
 
     @classmethod
@@ -46,9 +48,3 @@ class WritesToMem:
     @classmethod
     def write(cls, cpu, memory_address, value):
         cpu.set_memory(memory_address, value)
-
-
-class ReadsFromMem:
-    @classmethod
-    def get_data(cls, cpu, memory_address, data_bytes) -> Optional[int]:
-        return cpu.get_memory(memory_address)

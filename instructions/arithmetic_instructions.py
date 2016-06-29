@@ -1,6 +1,6 @@
 from addressing import ZeroPageAddressing, AbsoluteAddressing
 from helpers import generate_classes_from_string
-from instructions.base_instructions import Cmp, Bit, And, Or, Eor, Adc, Cpy, Cpx, Sbc
+from instructions.base_instructions import Cmp, Bit, And, Or, Eor, Adc, Cpy, Cpx, Sbc, Lsr, Asl, Ror, Rol
 
 types = []
 
@@ -125,4 +125,52 @@ absolute,Y    SBC oper,Y    F9    3     4*
 '''
 
 for generated in generate_classes_from_string(Sbc, sbc_types):
+    types.append(generated)
+
+# lsr instructions
+lsr_types = '''
+accumulator   LSR A         4A    1     2
+zeropage      LSR oper      46    2     5
+zeropage,X    LSR oper,X    56    2     6
+absolute      LSR oper      4E    3     6
+absolute,X    LSR oper,X    5E    3     7
+'''
+
+for generated in generate_classes_from_string(Lsr, lsr_types):
+    types.append(generated)
+
+# asl instructions
+asl_types = '''
+accumulator   ASL A         0A    1     2
+zeropage      ASL oper      06    2     5
+zeropage,X    ASL oper,X    16    2     6
+absolute      ASL oper      0E    3     6
+absolute,X    ASL oper,X    1E    3     7
+'''
+
+for generated in generate_classes_from_string(Asl, asl_types):
+    types.append(generated)
+
+# ror instructions
+ror_types = '''
+accumulator   ROR A         6A    1     2
+zeropage      ROR oper      66    2     5
+zeropage,X    ROR oper,X    76    2     6
+absolute      ROR oper      6E    3     6
+absolute,X    ROR oper,X    7E    3     7
+'''
+
+for generated in generate_classes_from_string(Ror, ror_types):
+    types.append(generated)
+
+# rol instructions
+rol_types = '''
+accumulator   ROL A         2A    1     2
+zeropage      ROL oper      26    2     5
+zeropage,X    ROL oper,X    36    2     6
+absolute      ROL oper      2E    3     6
+absolute,X    ROL oper,X    3E    3     7
+'''
+
+for generated in generate_classes_from_string(Rol, rol_types):
     types.append(generated)

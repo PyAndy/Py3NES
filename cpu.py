@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 
+from helpers import Numbers
 from instructions.generic_instructions import Instruction
 
 from memory_owner import MemoryOwnerMixin
@@ -16,7 +17,6 @@ import instructions.load_instructions as l_file
 import instructions.store_instructions as s_file
 import instructions.bit_instructions as b_file
 import instructions.arithmetic_instructions as a_file
-
 
 
 class CPU(object):
@@ -40,6 +40,7 @@ class CPU(object):
         # counter registers: store a single byte
         self.pc_reg = None  # program counter, 2 byte
         self.sp_reg = None  # stack pointer
+        self.stack_offset = 0x100
 
         # data registers: store a single byte
         self.x_reg = None  # x register
@@ -75,7 +76,7 @@ class CPU(object):
         $4000-$400F: 0 (sound registers)
         """
         # TODO Hex vs binary
-        self.pc_reg = 0  # 2 byte
+        self.pc_reg = np.uint16(0)  # 2 byte
         self.status_reg = Status()
         self.sp_reg = np.uint8(0xFD)
 
@@ -110,17 +111,25 @@ class CPU(object):
         memory_owner = self._get_memory_owner(location)
         memory_owner.set(location, value, num_bytes)
 
-    def increase_stack_size(self, size: int):
+    def set_stack_value(self, value: int, num_bytes: int):
         """
-        increases stack size by decreasing the stack pointer
+        sets a value on the stack, and decrements the stack pointer
         """
-        self.sp_reg -= np.uint8(size)
+        # store the value on the stack
+        self.set_memory(self.stack_offset + self.sp_reg, value, num_bytes=num_bytes)
 
-    def decrease_stack_size(self, size: int):
+        # increases the size of the stack
+        self.sp_reg -= np.uint8(num_bytes)
+
+    def get_stack_value(self, num_bytes: int):
         """
-        decreases stack size by increasing the stack pointer
+        gets a value on the stack, and increments the stack pointer
         """
-        self.sp_reg += np.uint8(size)
+        # decrease the size of the stack
+        self.sp_reg += np.uint8(num_bytes)
+
+        # grab the stored value from the stack
+        return self.get_memory(self.stack_offset + self.sp_reg, num_bytes=num_bytes)
 
     def load_rom(self, rom: ROM):
         # unload old rom
@@ -129,14 +138,18 @@ class CPU(object):
 
         # load rom
         self.rom = rom
-        self.pc_reg = 0xC000
+        self.pc_reg = np.uint16(0xC000)
 
         # load the rom program instructions into memory
         self.memory_owners.append(self.rom)
 
     def identify(self):
         # get the current byte at pc
+        rom_instruction = True
         identifier_byte = self._get_memory_owner(self.pc_reg).get(self.pc_reg)
+        if type(identifier_byte) is not bytes:
+            rom_instruction = False
+            identifier_byte = bytes([identifier_byte])
 
         # turn the byte into an Instruction
         self.instruction = self.instructions.get(identifier_byte, None)  # type: Instruction
@@ -144,20 +157,26 @@ class CPU(object):
             raise Exception('Instruction not found: {}'.format(identifier_byte.hex()))
 
         # get the data bytes
-        self.data_bytes = self.rom.get(self.pc_reg + 1, self.instruction.data_length)
+        if rom_instruction:
+            self.data_bytes = self.rom.get(self.pc_reg + np.uint16(1), self.instruction.data_length)
+        else:
+            if self.instruction.data_length > 0:
+                self.data_bytes = bytes([self.get_memory(self.pc_reg + np.uint16(1), self.instruction.data_length)])
+            else:
+                self.data_bytes = bytes()
 
         # print out diagnostic information
         # example: C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD CYC:  0
         print('{}, {}, {}, A:{}, X:{}, Y:{}, P:{}, SP:{}'.format(hex(self.pc_reg),
                                                                  (identifier_byte + self.data_bytes).hex(),
-                                                                 self.instruction.__name__, self.a_reg, self.x_reg,
-                                                                 self.y_reg, hex(self.status_reg.to_int()),
-                                                                 hex(self.sp_reg)))
+                                                                 self.instruction.__name__, hex(self.a_reg),
+                                                                 hex(self.x_reg), hex(self.y_reg),
+                                                                 hex(self.status_reg.to_int()), hex(self.sp_reg)))
 
     def execute(self):
 
         # increment the pc_reg
-        self.pc_reg += self.instruction.get_instruction_length()
+        self.pc_reg += np.uint16(self.instruction.get_instruction_length())
 
         # we have a valid instruction class
         value = self.instruction.execute(self, self.data_bytes)

@@ -1,4 +1,7 @@
 from typing import Optional
+
+import numpy as np
+
 import cpu as c
 
 
@@ -34,6 +37,17 @@ class ImplicitAddressing(Addressing):
     data_length = 0
 
 
+class AccumulatorAddressing(Addressing):
+    """
+    get value from accumulator
+    """
+    data_length = 0
+
+    @classmethod
+    def get_data(cls, cpu, memory_address, data_bytes):
+        return cpu.a_reg
+
+
 class ImmediateReadAddressing(Addressing):
     """
     read a value from the instruction data
@@ -57,7 +71,7 @@ class AbsoluteAddressing(Addressing):
 
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
-        return int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
+        return np.uint16(int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu))
 
 
 class AbsoluteAddressingWithX(XRegOffset, AbsoluteAddressing):
@@ -83,9 +97,7 @@ class ZeroPageAddressing(Addressing):
 
     @classmethod
     def get_address(cls, cpu, data_bytes: bytes) -> Optional[int]:
-        address = int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu)
-        if address >= 256:
-            address %= 256
+        address = np.uint8(int.from_bytes(data_bytes, byteorder='little') + cls.get_offset(cpu))
 
         return address
 
@@ -114,20 +126,24 @@ class RelativeAddressing(Addressing):
         current_address = cpu.pc_reg
 
         # offset by value in instruction
-        return current_address + int.from_bytes(data_bytes, byteorder='little')
+        return current_address + np.uint16(int.from_bytes(data_bytes, byteorder='little'))
 
 
 class IndirectBase(Addressing):
     @classmethod
     def get_address(cls, cpu: 'c.CPU', data_bytes: bytes):
         # look up the bytes at [original_address, original_address + 1]
-        lsb_location = super().get_address(cpu, data_bytes)
-        msb_location = lsb_location + 1
+        lsb_location = np.uint16(super().get_address(cpu, data_bytes))
+        msb_location = np.uint16(lsb_location + 1)
+
+        # wrap around on page boundaries
+        if msb_location % 0x100 == 0:
+            msb_location = np.uint16(lsb_location - 0xFF)
 
         lsb = cpu.get_memory(lsb_location)
         msb = cpu.get_memory(msb_location)
 
-        return int.from_bytes(bytes([lsb, msb]), byteorder='little')
+        return np.uint16(int.from_bytes(bytes([lsb, msb]), byteorder='little'))
 
 
 class IndirectAddressing(IndirectBase, AbsoluteAddressing):
@@ -146,6 +162,7 @@ class IndirectAddressingWithY(IndirectBase, ZeroPageAddressing):
     """
     adds the y reg after indirection
     """
+
     @classmethod
     def get_address(cls, cpu: 'c.CPU', data_bytes: bytes):
-        return super().get_address(cpu, data_bytes) + cpu.y_reg
+        return np.uint16(super().get_address(cpu, data_bytes) + cpu.y_reg)
