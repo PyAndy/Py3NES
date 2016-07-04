@@ -8,7 +8,8 @@ class NesTestLog:
     def __init__(self, lines: List[str]):
         self.lines = []  # type: List[NesTestLine]
         self.index = 0
-        pattern = r'(.{4})\s*(.{8})\s*(.{4})\s(.{28})A:(.{2})\sX:(.{2})\sY:(.{2})\sP:(.{2})\sSP:(.{2})\sCYC:(.*)'
+
+        pattern = r'(.{4})\s*(.{9}).(.{4})(.{28})A:(.{2})\sX:(.{2})\sY:(.{2})\sP:(.{2})\sSP:(.{2})\sCYC:(.*)'
         compiled = re.compile(pattern)
         for line in lines:
             self.lines.append(NesTestLine(line, compiled))

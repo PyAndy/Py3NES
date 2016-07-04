@@ -1,6 +1,6 @@
 from addressing import ZeroPageAddressing, AbsoluteAddressing
 from helpers import generate_classes_from_string
-from instructions.base_instructions import Cmp, Bit, And, Or, Eor, Adc, Cpy, Cpx, Sbc, Lsr, Asl, Ror, Rol
+from instructions.base_instructions import Cmp, Bit, And, Ora, Eor, Adc, Cpy, Cpx, Sbc, Lsr, Asl, Ror, Rol
 
 types = []
 
@@ -77,7 +77,7 @@ absolute,Y    ORA oper,Y    19    3     4*
 (indirect),Y  ORA (oper),Y  11    2     5*
 '''
 
-for generated in generate_classes_from_string(Or, or_types):
+for generated in generate_classes_from_string(Ora, or_types):
     types.append(generated)
 
 # eor instructions
@@ -115,6 +115,7 @@ for generated in generate_classes_from_string(Adc, adc_types):
 # sbc instructions
 sbc_types = '''
 immidiate     SBC #oper     E9    2     2
+immidiate     SBC #oper     EB    2     2
 zeropage      SBC oper      E5    2     3
 zeropage,X    SBC oper,X    F5    2     4
 absolute      SBC oper      ED    3     4

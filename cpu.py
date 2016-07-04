@@ -2,11 +2,11 @@ from typing import List
 
 import numpy as np
 
-from helpers import Numbers
 from instructions.generic_instructions import Instruction
 
 from memory_owner import MemoryOwnerMixin
 from ppu import PPU
+from apu import APU
 from ram import RAM
 from rom import ROM
 from status import Status
@@ -17,22 +17,26 @@ import instructions.load_instructions as l_file
 import instructions.store_instructions as s_file
 import instructions.bit_instructions as b_file
 import instructions.arithmetic_instructions as a_file
+import instructions.combination_instructions as c_file
 
 
 class CPU(object):
-    def __init__(self, ram: RAM, ppu: PPU):
+    def __init__(self, ram: RAM, ppu: PPU, apu: APU):
         self.ram = ram
         self.ppu = ppu
+        self.apu = apu
         self.rom = None
 
         self.memory_owners = [  # type: List[MemoryOwnerMixin]
             self.ram,
-            self.ppu
+            self.ppu,
+            self.apu
         ]
 
         # instruction to execute
         self.instruction = None
         self.data_bytes = None
+        self.instruction_byte = None
 
         # status registers: store a single byte
         self.status_reg = None  # type: Status
@@ -54,7 +58,7 @@ class CPU(object):
         instructions_list = self._find_instructions(Instruction)
         self.instructions = {}
         for instruction in instructions_list:
-            if instruction in self.instructions:
+            if instruction.identifier_byte in self.instructions.keys():
                 raise Exception('Duplicate instruction identifier bytes')
             self.instructions[instruction.identifier_byte] = instruction
 
@@ -131,30 +135,34 @@ class CPU(object):
         # grab the stored value from the stack
         return self.get_memory(self.stack_offset + self.sp_reg, num_bytes=num_bytes)
 
-    def load_rom(self, rom: ROM):
+    def load_rom(self, rom: ROM, testing):
         # unload old rom
         if self.rom is not None:
             self.memory_owners.remove(self.rom)
 
         # load rom
         self.rom = rom
-        self.pc_reg = np.uint16(0xC000)
 
         # load the rom program instructions into memory
         self.memory_owners.append(self.rom)
 
+        if testing:
+            self.pc_reg = np.uint16(0xC000)
+        else:
+            self.pc_reg = np.uint16(int.from_bytes(self.get_memory(0xFFFC, 2), byteorder='little'))
+
     def identify(self):
         # get the current byte at pc
         rom_instruction = True
-        identifier_byte = self._get_memory_owner(self.pc_reg).get(self.pc_reg)
-        if type(identifier_byte) is not bytes:
+        self.instruction_byte = self._get_memory_owner(self.pc_reg).get(self.pc_reg)
+        if type(self.instruction_byte) is not bytes:
             rom_instruction = False
-            identifier_byte = bytes([identifier_byte])
+            self.instruction_byte = bytes([self.instruction_byte])
 
         # turn the byte into an Instruction
-        self.instruction = self.instructions.get(identifier_byte, None)  # type: Instruction
+        self.instruction = self.instructions.get(self.instruction_byte, None)  # type: Instruction
         if self.instruction is None:
-            raise Exception('Instruction not found: {}'.format(identifier_byte.hex()))
+            raise Exception('Instruction not found: {}'.format(self.instruction_byte.hex()))
 
         # get the data bytes
         if rom_instruction:
@@ -168,7 +176,7 @@ class CPU(object):
         # print out diagnostic information
         # example: C000  4C F5 C5  JMP $C5F5                       A:00 X:00 Y:00 P:24 SP:FD CYC:  0
         print('{}, {}, {}, A:{}, X:{}, Y:{}, P:{}, SP:{}'.format(hex(self.pc_reg),
-                                                                 (identifier_byte + self.data_bytes).hex(),
+                                                                 (self.instruction_byte + self.data_bytes).hex(),
                                                                  self.instruction.__name__, hex(self.a_reg),
                                                                  hex(self.x_reg), hex(self.y_reg),
                                                                  hex(self.status_reg.to_int()), hex(self.sp_reg)))

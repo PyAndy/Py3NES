@@ -1,7 +1,7 @@
 import numpy as np
 
 import cpu as c
-from addressing import ImplicitAddressing, RelativeAddressing
+from addressing import ImpliedAddressing, RelativeAddressing
 from helpers import Numbers
 from instructions.generic_instructions import Instruction, WritesToMem
 from status import Status
@@ -147,6 +147,18 @@ class Lda(Ld):
         cpu.a_reg = np.uint8(value)
 
 
+class Lax(Ld):
+    """
+    Lda then Tax
+    N Z C I D V
+    + + - - - -
+    """
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        Lda.write(cpu, memory_address, value)
+        return Tax.write(cpu, memory_address, value)
+
+
 class Ldx(Ld):
     """
     N Z C I D V
@@ -175,6 +187,16 @@ class Sta(WritesToMem, Instruction):
     @classmethod
     def get_data(cls, cpu, memory_address, data_bytes):
         return cpu.a_reg
+
+
+class Sax(WritesToMem, Instruction):
+    """
+    N Z C I D V
+    - - - - - -
+    """
+    @classmethod
+    def get_data(cls, cpu, memory_address, data_bytes):
+        return cpu.a_reg & cpu.x_reg
 
 
 class Stx(WritesToMem, Instruction):
@@ -212,7 +234,7 @@ class And(Instruction):
         return cpu.a_reg
 
 
-class Or(Instruction):
+class Ora(Instruction):
     """
     bitwise or with accumulator and store result
     N Z C I D V
@@ -253,19 +275,15 @@ class Adc(Instruction):
 
     @classmethod
     def write(cls, cpu, memory_address, value):
-        result = cpu.a_reg + value + int(cpu.status_reg.bits[Status.StatusTypes.carry])
+        result = cpu.a_reg + int(value) + int(cpu.status_reg.bits[Status.StatusTypes.carry])
         # if value and a_reg have different signs than result, set overflow
         overflow = bool((cpu.a_reg ^ result) & (value ^ result) & 0x80)
         cpu.status_reg.bits[Status.StatusTypes.overflow] = overflow
 
         # if greater than 255, carry
-        if result >= 256:
-            result %= 256
-            cpu.status_reg.bits[Status.StatusTypes.carry] = True
-        else:
-            cpu.status_reg.bits[Status.StatusTypes.carry] = False
+        cpu.status_reg.bits[Status.StatusTypes.carry] = bool(result & 256)
 
-        cpu.a_reg = result
+        cpu.a_reg = np.uint8(result)
         return cpu.a_reg
 
 
@@ -311,7 +329,7 @@ class Lsr(Shift):
     @classmethod
     def write(cls, cpu, memory_address, value):
         # shift bits
-        updated_value = np.uint8(cpu.a_reg >> 1)
+        updated_value = np.uint8(value >> 1)
         # set the carry reg
         cpu.status_reg.bits[Status.StatusTypes.carry] = bool(value & 0b1)
         return super().write(cpu, memory_address, updated_value)
@@ -325,8 +343,8 @@ class Asl(Shift):
     @classmethod
     def write(cls, cpu, memory_address, value):
         # shift bits
-        a_reg_without_7 = value & 0b01111111
-        updated_value = np.uint8(a_reg_without_7 << 1)
+        value_without_7 = value & 0b01111111
+        updated_value = np.uint8(value_without_7 << 1)
         # set the carry reg
         original_bit_7 = (value & 0b10000000) >> 7
         cpu.status_reg.bits[Status.StatusTypes.carry] = bool(original_bit_7)
@@ -341,7 +359,7 @@ class Ror(Shift):
     @classmethod
     def write(cls, cpu, memory_address, value):
         # shift bits
-        shifted_bits_without_7 = np.uint8(cpu.a_reg >> 1)
+        shifted_bits_without_7 = np.uint8(value >> 1)
         shifted_carry = int(cpu.status_reg.bits[Status.StatusTypes.carry]) << 7
         updated_value = np.uint8(shifted_bits_without_7 | shifted_carry)
         # set the carry reg
@@ -362,8 +380,8 @@ class Rol(Shift):
     @classmethod
     def write(cls, cpu, memory_address, value):
         # shift bits
-        a_reg_without_7 = cpu.a_reg & 0b01111111
-        shifted_bits_without_0 = a_reg_without_7 << 1
+        value_reg_without_7 = value & 0b01111111
+        shifted_bits_without_0 = value_reg_without_7 << 1
         shifted_carry = int(cpu.status_reg.bits[Status.StatusTypes.carry])
         updated_value = np.uint8(shifted_bits_without_0 | shifted_carry)
         # set the carry reg
@@ -431,6 +449,39 @@ class Cmp(Compare):
         return super().write(cpu, memory_address, result)
 
 
+class Dcp(Instruction):
+    """
+    dec then cmp
+    N Z C I D V
+    + + - - - -
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Dec.write(cpu, memory_address, value)
+
+        return Cmp.write(cpu, memory_address, updated_value)
+
+
+class Isb(Instruction):
+    """
+    inc then sbc
+    A - M - C -> A
+    N Z C I D V
+    + + + - - +
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Inc.write(cpu, memory_address, value)
+
+        return Sbc.write(cpu, memory_address, updated_value)
+
+
 class Cpx(Compare):
     """
     compare given value with the x reg
@@ -489,7 +540,75 @@ class RegisterModifier(Instruction):
     sets_zero_bit = True
 
 
-class SetBit(ImplicitAddressing, Instruction):
+class Tax(ImpliedAddressing, RegisterModifier):
+    identifier_byte = bytes([0xAA])
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        cpu.x_reg = cpu.a_reg
+        return cpu.x_reg
+
+
+class Slo(Instruction):
+    """
+    asl then ora
+    N Z C I D V
+    + + + - - -
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Asl.write(cpu, memory_address, value)
+        return Ora.write(cpu, memory_address, updated_value)
+
+
+class Rla(Instruction):
+    """
+    Rol then and
+    N Z C I D V
+    + + + - - -
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Rol.write(cpu, memory_address, value)
+        return And.write(cpu, memory_address, updated_value)
+
+
+class Rra(Instruction):
+    """
+    Ror then adc
+    N Z C I D V
+    + + + - - +
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Ror.write(cpu, memory_address, value)
+        return Adc.write(cpu, memory_address, updated_value)
+
+
+class Sre(Instruction):
+    """
+    lsr then eor
+    N Z C I D V
+    + + + - - -
+    """
+    sets_negative_bit = True
+    sets_zero_bit = True
+    @classmethod
+    def write(cls, cpu, memory_address, value):
+        updated_value = Lsr.write(cpu, memory_address, value)
+        return Eor.write(cpu, memory_address, updated_value)
+
+
+class SetBit(ImpliedAddressing, Instruction):
     """
     sets a bit to be True in the status reg
     N Z C I D V
@@ -500,7 +619,7 @@ class SetBit(ImplicitAddressing, Instruction):
         cpu.status_reg.bits[cls.bit] = True
 
 
-class ClearBit(ImplicitAddressing, Instruction):
+class ClearBit(ImpliedAddressing, Instruction):
     """
     sets a bit to be False in the status reg
     N Z C I D V

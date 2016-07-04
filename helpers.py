@@ -5,7 +5,7 @@ import re
 
 from addressing import ImmediateReadAddressing, Addressing, ZeroPageAddressing, ZeroPageAddressingWithX, \
     AbsoluteAddressing, AbsoluteAddressingWithX, AbsoluteAddressingWithY, IndirectAddressingWithX, \
-    IndirectAddressingWithY, ZeroPageAddressingWithY, AccumulatorAddressing
+    IndirectAddressingWithY, ZeroPageAddressingWithY, AccumulatorAddressing, ImpliedAddressing
 
 class_pattern = r'(\S*)\s*(\w*).{11}(\w*).*'
 compiled_class_pattern = re.compile(class_pattern)
@@ -55,7 +55,8 @@ def description_to_addressing(description: str) -> Addressing:
         'absolute,Y': AbsoluteAddressingWithY,
         '(indirect,X)': IndirectAddressingWithX,
         '(indirect),Y': IndirectAddressingWithY,
-        'accumulator': AccumulatorAddressing
+        'accumulator': AccumulatorAddressing,
+        'implied': ImpliedAddressing
     }[description]
 
 

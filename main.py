@@ -3,6 +3,7 @@ import argparse
 from cpu import CPU
 from nes_test import NesTestLog
 from ram import RAM
+from apu import APU
 from ppu import PPU
 from rom import ROM
 
@@ -26,13 +27,14 @@ def main():
     # create ram
     ram = RAM()
 
-    # create ppu
+    # create ppu and apu
     ppu = PPU()
+    apu = APU()
 
     # create cpu
-    cpu = CPU(ram, ppu)
+    cpu = CPU(ram, ppu, apu)
     cpu.start_up()
-    cpu.load_rom(rom)
+    cpu.load_rom(rom, args.test)
 
     # check if running the test rom
     if args.test:
